@@ -80,7 +80,15 @@ export default function Home() {
       catch (error) {
         console.error(error);
         throw error;
-      }
+      } 
+    }else {
+        // Return a default value when query is an empty string
+        return {
+          page: 1,
+          results: [],
+          total_pages: 1,
+          total_results: 0
+        };
     }
   }
 
