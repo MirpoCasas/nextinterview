@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useStore, permUseStore} from "@/components/store";
+import { useEffect, useState } from "react";
 
 const schema = z.object({
   query: z.string().min(1, { message: "Must be at least 1 character" })
@@ -15,7 +16,14 @@ type Inputs = z.infer<typeof schema>;
 export default function Searchbar( props : {error : string | undefined}) {
   const setQuery = useStore((state) => state.setQuery);
   const permquery = permUseStore((state) => state.permquery);
-  const { register, handleSubmit, formState: {errors, isSubmitting} } = useForm<Inputs>({resolver: zodResolver(schema)});
+  const { register, handleSubmit, formState: {errors, isSubmitting}, setValue } = useForm<Inputs>({resolver: zodResolver(schema)});
+
+  useEffect(() => {
+    if (permquery) {
+      console.log("permquery: " + permquery);
+      setValue("query", permquery);
+    }
+  },[setValue, permquery]);
 
   const onSubmit: SubmitHandler<Inputs> = (data) => {
     setQuery(data.query);

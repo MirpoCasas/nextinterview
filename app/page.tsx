@@ -1,6 +1,7 @@
 "use client";
 
-import { useInfiniteQuery, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchMovies } from "@/server/api";
 import { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -55,57 +56,18 @@ export default function Home() {
   const permquery = permUseStore((state) => state.permquery);
   const { ref, inView } = useInView();
 
-  // fetch data from API
-  async function fetchMovies(pageNum: number,) {
-    const options = {
-      method: "GET",
-      url: "https://api.themoviedb.org/3/search/movie",
-      params: { query: query, include_adult: "false", language: "en-US", page: pageNum.toString()},
-      headers: {
-        accept: "application/json",
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_TOKEN}`,
-      },
-    };
-
-    console.log("fetching movies");
-    if (query !== "") {
-      try {
-        const response = await axios.request(options);
-        if (response.status !== 200) {
-          throw new Error('API key might be wrong or request failed');
-        }
-        setLoaded(true);
-        return response.data;
-      }
-      catch (error) {
-        console.error(error);
-        throw error;
-      } 
-    }else {
-        // Return a default value when query is an empty string
-        return {
-          page: 1,
-          results: [],
-          total_pages: 1,
-          total_results: 0
-        };
-    }
-  }
+  const queryClient = useQueryClient();
 
   // fetch data with react-query
   const { data, isSuccess, hasNextPage, fetchNextPage, isFetchingNextPage, status, error, refetch, isLoading } = useInfiniteQuery({
     queryKey: ["movies", query],
     enabled: false,
-    queryFn: ({ pageParam = 1 }) => fetchMovies(pageParam),
-    initialData: () => {
-      if (cachedData) {
-        console.log("using cached data");
-        console.log(cachedData);
-        return cachedData;
-      } 
-    },
+    queryFn: ({ pageParam = 1 }) => fetchMovies(query, pageParam),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
+      if (lastPage === undefined) {
+        return undefined;
+      }
       const morePagesExist = lastPage.page < lastPage.total_pages;
       return morePagesExist ? lastPage.page + 1 : undefined;
     },
@@ -114,13 +76,21 @@ export default function Home() {
 
   // save data to storage with zustand
   useEffect(() => {
-    if (data) {
+    console.log(data)
+    console.log(cachedData)
+    if (!data && cachedData.pages.length > 0) {
+      console.log("cached data");
+      console.log(cachedData)
+      queryClient.setQueryData(["movies", ""], cachedData);
+    }
+    if (data && data.pages.length > 0 && data.pages[0].results.length > 0) {
+      console.log("saving data");
       setCachedData(data as unknown as CachedData);
     }
     if (query !== "") {
       setpermquery(query)
     }
-  }, [data, setCachedData, query, setpermquery]);
+  }, [data, setCachedData, query, setpermquery, cachedData , queryClient]);
 
   //refetch on query change to enable search
   useEffect(() => {

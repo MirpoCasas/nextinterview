@@ -1,6 +1,6 @@
 import { InfiniteData } from "@tanstack/react-query";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 interface PermStore {
   permquery: string;
